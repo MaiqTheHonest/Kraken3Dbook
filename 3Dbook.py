@@ -7,8 +7,9 @@ import bisect
 from matplotlib.ticker import FormatStrFormatter
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as mpatches
+import time
 
-%matplotlib auto
+#%matplotlib auto
 
 ### to deal with runtimeerror:
 import nest_asyncio
@@ -16,8 +17,9 @@ nest_asyncio.apply()
 ###
 
 # settables
-book_depth = 25
-ticker = "ETH/USD"
+book_depth: int = 25
+ticker: str = "ETH/USD"
+runtime: int = 10
 
 _zbCu = []
 _zaCu = []
@@ -42,7 +44,7 @@ ax1.set_zlabel("aggregated volume", labelpad=30, rotation=90)
 ax1.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 ax1.tick_params(axis='y', pad=10)
 ax1.tick_params(axis='z', pad=10)
-ax1.set_title("ETH / USD order book, aggregated volume", y=0.93)
+ax1.set_title(f"{ticker} order book, aggregated volume", y=0.93)
 green_patch = mpatches.Patch(color=[0.094, 0.349, 0.141], label='bids')
 red_patch = mpatches.Patch(color=[0.984, 0.247, 0.090], label='asks')
 plt.legend(handles=[green_patch, red_patch], title=f"\n book depth = {book_depth} \n", loc=[0.9, 0.005])
@@ -52,7 +54,7 @@ ax2 = fig.add_subplot(gs[:2,:2])
 ax2.set_xlabel("epochs", labelpad=10)
 ax2.set_ylabel("mid-price", labelpad=10)
 ax2.xaxis.set_label_coords(1.08, 0.01)
-ax2.set_title('ETH / USD midmarket', pad=20)
+ax2.set_title(f"{ticker} midmarket", pad=20)
 ax2.grid(True)
 
 # initialize skew line plot
@@ -65,7 +67,7 @@ ax3.spines['bottom'].set_position('center')
 ax3.set_xlabel("epochs", labelpad=25)
 ax3.xaxis.set_label_coords(1.08, 0.51)
 ax3.set_ylabel("skew", labelpad=10)
-ax3.set_title('ETH / USD skew', pad=20)
+ax3.set_title(f"{ticker} skew", pad=20)
 ax3.grid(True)
 
 
@@ -106,15 +108,15 @@ async def kraken_ws():
         async with websockets.connect(url, ping_interval=None) as websocket:
             subscribe_msg = {
                 "event": "subscribe",
-                "pair": ["ETH/USD"],
+                "pair": [ticker],
                 "subscription": {"name": "book",
                                  "depth": book_depth}
             }
 
             await websocket.send(json.dumps(subscribe_msg))
 
-            # Run the loop for 120 seconds
-            end_time = asyncio.get_event_loop().time() + 120  
+            # Run the loop for (runtime) seconds
+            end_time = asyncio.get_event_loop().time() + runtime  
             
             linecount = 0
             headers = []
@@ -268,7 +270,7 @@ async def kraken_ws():
 
 
             def update_graph(_xa, _za, _xb, _zb, _zbCu, _zaCu, _plotxa, _plotxb):  # drawing bars, then changing ticks
-
+                start = time.time()
                 global time_passed, midmarket, skew, ticklabels
                 midmarket = (_xb[-1] + _xa[0])/2
                 skew = _zaCu[-1] - _zbCu[0]
@@ -322,6 +324,9 @@ async def kraken_ws():
                 line1.pop(0).remove()
                 line2.pop(0).remove()
                 ticklabels[-1].set_fontsize(10)
+                
+                end = time.time()
+                print(f"{(end-start)*10**3:.03f}ms")
 
 
 
