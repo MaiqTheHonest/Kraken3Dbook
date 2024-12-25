@@ -12,8 +12,8 @@ import time
 #%matplotlib auto
 
 ### to deal with runtimeerror:
-import nest_asyncio
-nest_asyncio.apply()
+# import nest_asyncio
+# nest_asyncio.apply()
 ###
 
 # settables
@@ -41,7 +41,7 @@ ax1.zaxis.set_rotate_label(False)
 ax1.set_xlabel("bid / ask price", labelpad=40)
 ax1.set_ylabel("epochs", labelpad=20, rotation=94)
 ax1.set_zlabel("aggregated volume", labelpad=30, rotation=90)
-ax1.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+ax1.xaxis.set_major_formatter(FormatStrFormatter('%.6g'))
 ax1.tick_params(axis='y', pad=10)
 ax1.tick_params(axis='z', pad=10)
 ax1.set_title(f"{ticker} order book, aggregated volume", y=0.93)
@@ -239,7 +239,7 @@ async def kraken_ws():
                     if count != len(_xa) - 1:
                         _plotxa.append(_xa[count+1] - value)
                     else:
-                        _plotxa.append(0.01)
+                        _plotxa.append(0.00001)
 
                 return _xa, _za, _xb, _zb, _zbCu, _zaCu, _plotxa, _plotxb
 
@@ -295,8 +295,11 @@ async def kraken_ws():
                     del temp_bar1
                     del temp_bar2
 
-                
-                ticks = list(np.arange(_xb[0]-0.1, _xa[-1]+0.1, 0.5)) + [midmarket]
+
+
+                t1, t2 = _xb[0]-0.0001*_xb[0], _xa[-1]+0.0001*_xa[-1]
+                ticks = list(np.arange(t1, t2, 0.1*(t2-t1))) + [midmarket]
+
                 ax1.set_xticks(ticks)
                 ticks.pop(-1)
 
@@ -348,6 +351,7 @@ async def kraken_ws():
                     plt.ioff()
                     plt.close()
                     print("Loop finished")
+                    #asyncio.get_event_loop().stop()
                     break
 
     except asyncio.CancelledError:
@@ -357,6 +361,7 @@ async def kraken_ws():
 
 # Run the asyncio loop for a limited time
 async def main():
+    
     await kraken_ws()
 
 asyncio.get_event_loop().run_until_complete(main())  # the actual asyncio call
